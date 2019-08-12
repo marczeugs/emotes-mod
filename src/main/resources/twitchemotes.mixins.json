@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "marczeugs.twitchemotes.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [],
+  "client": [
+    "ChatHudMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

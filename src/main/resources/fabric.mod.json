@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "twitchemotes",
+  "version": "${version}",
+
+  "name": "Twitch Emotes",
+  "description": "The mod enables Twitch Emotes in the ingame chat. Add resource packs to add new emotes.",
+  "authors": [
+    "the_marcster"
+  ],
+  "contact": {
+    "homepage": "",
+    "sources": ""
+  },
+
+  "license": "CC0-1.0",
+  "icon": "assets/twitchemotes/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "marczeugs.twitchemotes.TwitchEmotesMod"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "twitchemotes.mixins.json",
+      "environment": "client"
+   	}
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.4.0",
+    "fabric": "*"
+  },
+  "suggests": {
+    "flamingo": "*"
+  }
+}
