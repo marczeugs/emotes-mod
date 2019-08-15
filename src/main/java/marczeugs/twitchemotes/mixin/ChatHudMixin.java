@@ -1,25 +1,26 @@
 package marczeugs.twitchemotes.mixin;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.regex.Matcher;
 
 import javax.annotation.Nullable;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 
-import marczeugs.twitchemotes.ChatLineEmote;
+import marczeugs.twitchemotes.Emote;
 import marczeugs.twitchemotes.TwitchEmotesMod;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.client.options.ChatVisibility;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 
 @Mixin(ChatHud.class)
@@ -35,90 +36,116 @@ public class ChatHudMixin extends DrawableHelper {
 	@Shadow public double getChatScale() { return 0; }
 	@Shadow private static double method_19348(int int_1) { return 0; }
 	
+	
 	@Nullable
-	public void render(int int_1) {
-		if (this.client.options.chatVisibility != ChatVisibility.HIDDEN) {
-			if(Math.random() < 0.01) System.out.println("test");
+	@Overwrite
+	public void render(int currentTimeStamp) throws IOException {
+		if(this.client.options.chatVisibility != ChatVisibility.HIDDEN) {
+			int visibleLineCount = this.getVisibleLineCount();
+			int lineCount = this.visibleMessages.size();
 			
-			int int_2 = this.getVisibleLineCount();
-			int int_3 = this.visibleMessages.size();
-			if (int_3 > 0) {
-				boolean boolean_1 = false;
-				if (this.isChatFocused()) {
-					boolean_1 = true;
-				}
+			if(lineCount > 0) {
+				boolean chatFocused = this.isChatFocused();
 
-				double double_1 = this.getChatScale();
-				int int_4 = MathHelper.ceil((double) this.getWidth() / double_1);
+				double chatScale = this.getChatScale();
+				int scaledChatWidth = MathHelper.ceil((double) this.getWidth() / chatScale);
 				GlStateManager.pushMatrix();
 				GlStateManager.translatef(2.0F, 8.0F, 0.0F);
-				GlStateManager.scaled(double_1, double_1, 1.0D);
-				double double_2 = this.client.options.chatOpacity * 0.9D + 0.1;
-				double double_3 = this.client.options.textBackgroundOpacity;
-				int int_5 = 0;
+				GlStateManager.scaled(chatScale, chatScale, 1.0D);
+				double chatOpacity = this.client.options.chatOpacity * 0.9D + 0.1;
+				double textBackgroundOpacity = this.client.options.textBackgroundOpacity;
+				int displayedLineCount = 0;
+				
+				// CHANGED
+				int lineYOffset = 0;
+				// /CHANGED
+				
 
-				int int_7;
-				int int_8;
-				int int_9;
-				for (int int_6 = 0; int_6 + this.scrolledLines < this.visibleMessages.size() && int_6 < int_2; ++int_6) {
-					ChatHudLine chatHudLine_1 = (ChatHudLine) this.visibleMessages.get(int_6 + this.scrolledLines);
-					if (chatHudLine_1 != null) {
-						int_7 = int_1 - chatHudLine_1.getTimestamp();
-						if (int_7 < 200 || boolean_1) {
-							double double_4 = boolean_1 ? 1.0D : method_19348(int_7);
-							int_8 = (int) (255.0D * double_4 * double_2);
-							int_9 = (int) (255.0D * double_4 * double_3);
-							++int_5;
-							if (int_8 > 3) {
-								int int_11 = -int_6 * 15;
-								fill(-2, int_11 - 15, 0 + int_4 + 4, int_11, int_9 << 24);
-								
+				int messageAge;
+				int messageTextOpacity;
+				int messageBackgroundOpacity;
+				for(int i = 0; i + this.scrolledLines < this.visibleMessages.size() && i < visibleLineCount; ++i) {
+					ChatHudLine chatLine = (ChatHudLine) this.visibleMessages.get(i + this.scrolledLines);
+					if(chatLine != null) {
+						messageAge = currentTimeStamp - chatLine.getTimestamp();
+						if(messageAge < 200 || chatFocused) {
+							double messageOpacity = chatFocused ? 1.0D : method_19348(messageAge);
+							messageTextOpacity = (int) (255.0D * messageOpacity * chatOpacity);
+							messageBackgroundOpacity = (int) (255.0D * messageOpacity * textBackgroundOpacity);
+							++displayedLineCount;
+							if(messageTextOpacity > 3) {
 								// CHANGED
-								GlStateManager.enableBlend();
-								
-								String chatLineText = chatHudLine_1.getText().asFormattedString();
-								
+								String chatLineText = chatLine.getText().asFormattedString();
+								boolean mentionedInLine = TwitchEmotesMod.mentionPattern.matcher(chatLineText).find();
+																
 								List<Object> chatLineParts = new ArrayList<Object>();
 								chatLineParts.add(chatLineText);
 								
-								for(Entry<String, Identifier> entry : TwitchEmotesMod.twitchEmotes.entrySet()) {
-									List<Object> nextParts = new ArrayList<Object>();
-									
-									for(Object nextPart : chatLineParts) {
-										if(nextPart instanceof String) {
-											String[] stringParts = ((String) nextPart).split("(?:^| )" + entry.getKey() + "(?:$| )", -1);
-											
-											for(int i = 0; i < stringParts.length; i++) {
-												nextParts.add(stringParts[i]);
+								List<Object> patchedParts = new ArrayList<Object>();
+								
+								
+								boolean emotesInText = false;
+								
+								for(Object nextPart : chatLineParts) {
+									if(nextPart instanceof String) {
+										String nextStringPart = (String) nextPart;
+										Matcher emoteMatcher = TwitchEmotesMod.emotePattern.matcher(nextStringPart);
+										int lastMatchStart = 0;
+										
+										while(emoteMatcher.find()) {
+											if(!emotesInText)
+												emotesInText = true;
 												
-												if(i != stringParts.length - 1) {
-													nextParts.add(" ");
-													nextParts.add(new ChatLineEmote(entry.getValue()));
-													nextParts.add(" ");
-												}
-											}
-										} else {
-											nextParts.add(nextPart);
-										}
+											patchedParts.add(nextStringPart.substring(lastMatchStart, emoteMatcher.start(1)));
+											patchedParts.add(TwitchEmotesMod.twitchEmotes.get(emoteMatcher.group(1)));
+								            lastMatchStart = emoteMatcher.end(1);
+								        }
+										
+										patchedParts.add(nextStringPart.substring(lastMatchStart));
+									} else {
+										patchedParts.add(nextPart);
 									}
-									
-									chatLineParts = nextParts;
 								}
 								
-								float xOffset = 0;
+								chatLineParts = patchedParts;
+
+								int lineHeight = 11;
+								if(emotesInText) lineHeight = 15;
+								
+								fill(-2, lineYOffset - lineHeight, scaledChatWidth + 4, lineYOffset, mentionedInLine ? 
+									((128 << 16) + (MathHelper.clamp(messageBackgroundOpacity * 2, 0, (255 - (255 - messageBackgroundOpacity) / 2)) << 24)) : 
+									(messageBackgroundOpacity << 24)
+								);
+								
+								GlStateManager.enableBlend();
+								
+								
+								float testXOffset = 0;
 								
 								for(Object chatLinePart : chatLineParts) {
 									if(chatLinePart instanceof String) {
-										this.client.textRenderer.drawWithShadow((String) chatLinePart, xOffset, (float) (int_11 - 11), 16777215 + (int_8 << 24));
-										xOffset += this.client.textRenderer.getStringWidth((String) chatLinePart);
+										this.client.textRenderer.drawWithShadow((String) chatLinePart, testXOffset, (float) (lineYOffset - (8 + (lineHeight - 9) / 2)), 16777215 + (messageTextOpacity << 24));
+										
+										testXOffset += this.client.textRenderer.getStringWidth((String) chatLinePart);
 									} else {
-										client.getTextureManager().bindTexture(((ChatLineEmote) chatLinePart).identifier);
-									    GlStateManager.color4f(1.0F, 1.0F, 1.0F, (float) int_8 / 255);
-									    DrawableHelper.blit((int) xOffset, int_11 - 14, 0, 0.0f, 0.0f, 13, 13, 13, 13);
-									      
-										xOffset += 14;
+										Emote emote = ((Emote) chatLinePart);
+										int width = emote.width;
+										int height = emote.height;
+										
+										client.getTextureManager().bindTexture(emote.identifier);
+									    GlStateManager.color4f(1.0F, 1.0F, 1.0F, (float) messageTextOpacity / 255);
+									    
+									    
+									    int frame = emote.animated ? ((int) (((System.currentTimeMillis() - TwitchEmotesMod.startTimestamp) / emote.delay) % emote.frames)) : 0;
+									    DrawableHelper.blit((int) testXOffset, lineYOffset - 14, 13 * width / height, 13, 0.0f, emote.height * frame, emote.width, emote.height, emote.width, emote.height * emote.frames);
+										// Arguments: drawX drawY drawWidth drawHeight texturePartX texturePartY texturePartWidth texturePartHeight textureWidth textureHeight
+									    
+									    testXOffset += 13 * width / height + 1;
 									}
 								}
+								
+								
+								lineYOffset -= lineHeight;
 								// /CHANGED
 								
 								GlStateManager.disableAlphaTest();
@@ -128,19 +155,19 @@ public class ChatHudMixin extends DrawableHelper {
 					}
 				}
 
-				if (boolean_1) {
+				if(chatFocused) {
 					this.client.textRenderer.getClass();
-					int int_12 = 9;
+					int chatLineHeight = 9;
 					GlStateManager.translatef(-3.0F, 0.0F, 0.0F);
-					int int_13 = int_3 * int_12 + int_3;
-					int_7 = int_5 * int_12 + int_5;
-					int int_15 = this.scrolledLines * int_7 / int_3;
-					int int_16 = int_7 * int_7 / int_13;
-					if (int_13 != int_7) {
-						int_8 = int_15 > 0 ? 170 : 96;
-						int_9 = this.field_2067 ? 13382451 : 3355562;
-						fill(0, -int_15, 2, -int_15 - int_16, int_9 + (int_8 << 24));
-						fill(2, -int_15, 1, -int_15 - int_16, 13421772 + (int_8 << 24));
+					int int_13 = lineCount * chatLineHeight + lineCount;
+					int int_17 = displayedLineCount * chatLineHeight + displayedLineCount;
+					int int_15 = this.scrolledLines * int_17 / lineCount;
+					int int_16 = int_17 * int_17 / int_13;
+					if(int_13 != int_17) {
+						messageTextOpacity = int_15 > 0 ? 170 : 96;
+						messageBackgroundOpacity = this.field_2067 ? 13382451 : 3355562;
+						fill(0, -int_15, 2, -int_15 - int_16, messageBackgroundOpacity + (messageTextOpacity << 24));
+						fill(2, -int_15, 1, -int_15 - int_16, 13421772 + (messageTextOpacity << 24));
 					}
 				}
 

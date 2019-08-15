@@ -4,7 +4,9 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [],
   "client": [
-    "ChatHudMixin"
+    "ChatHudMixin",
+    "ChatScreenMixin",
+    "TextureManagerAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
