@@ -83,12 +83,14 @@ public class TwitchEmotesMod implements ModInitializer, SimpleSynchronousResourc
 				for(Entry<String, JsonElement> entry : emoteData.entrySet()) {
 					String fileName;
 					int frames = 1;
+					int rows = 1;
 					int delay = 0;
 					boolean animated = false;
 					
 					if(entry.getValue().isJsonObject()) {
 						fileName = entry.getValue().getAsJsonObject().get("name").getAsString();
 						frames = entry.getValue().getAsJsonObject().get("frames").getAsInt();
+						rows = entry.getValue().getAsJsonObject().has("rows") ? entry.getValue().getAsJsonObject().get("rows").getAsInt() : frames;
 						delay = entry.getValue().getAsJsonObject().get("delay").getAsInt();
 						animated = true;
 					} else {
@@ -105,12 +107,17 @@ public class TwitchEmotesMod implements ModInitializer, SimpleSynchronousResourc
 
 						TwitchEmotesMod.twitchEmotes.put(entry.getKey(), new Emote(
 							identifier,
+							texture.getWidth() / ((int) Math.ceil(((float) frames) / ((float) rows))),
+							texture.getHeight() / rows,
 							texture.getWidth(),
-							texture.getHeight() / frames,
+							texture.getHeight(),
 							animated,
 							frames,
+							rows,
 							delay
 						));
+						
+						System.out.println(fileName + " " + Math.ceil(((float) frames) / ((float) rows)) + " " + ((float) frames) / ((float) rows) + " " + ((float) frames) + " " + ((float) rows));
 						
 						texture.close();
 					} catch(IOException e) {

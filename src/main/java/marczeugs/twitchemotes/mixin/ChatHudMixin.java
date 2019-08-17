@@ -137,7 +137,7 @@ public class ChatHudMixin extends DrawableHelper {
 									    
 									    
 									    int frame = emote.animated ? ((int) (((System.currentTimeMillis() - TwitchEmotesMod.startTimestamp) / emote.delay) % emote.frames)) : 0;
-									    DrawableHelper.blit((int) testXOffset, lineYOffset - 14, 13 * width / height, 13, 0.0f, emote.height * frame, emote.width, emote.height, emote.width, emote.height * emote.frames);
+									    DrawableHelper.blit((int) testXOffset, lineYOffset - 14, 13 * width / height, 13, (frame / (8192 / emote.height)) * emote.width, (frame % (8192 / emote.height)) * emote.height, emote.width, emote.height, emote.textureWidth, emote.textureHeight);
 										// Arguments: drawX drawY drawWidth drawHeight texturePartX texturePartY texturePartWidth texturePartHeight textureWidth textureHeight
 									    
 									    testXOffset += 13 * width / height + 1;
