@@ -5,7 +5,7 @@
   "mixins": [],
   "client": [
     "ChatHudMixin",
-    "ChatScreenMixin",
+    "CommandSuggestorMixin",
     "TextureManagerAccessor"
   ],
   "injectors": {

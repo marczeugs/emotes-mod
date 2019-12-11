@@ -16,14 +16,17 @@
   "license": "CC0-1.0",
   "icon": "assets/twitchemotes/icon.png",
 
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
-    "main": [
+    "client": [
       "marczeugs.twitchemotes.TwitchEmotesMod"
     ]
   },
   "mixins": [
-    "twitchemotes.mixins.json"
+  	{
+    	"config": "twitchemotes.mixins.json",
+    	"environment": "client"
+    }
   ],
 
   "depends": {

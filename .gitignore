@@ -24,3 +24,6 @@ bin/
 # fabric
 
 run/
+resourcepacks/
+.mixin.out/
+.fabric/

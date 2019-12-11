@@ -23,7 +23,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import marczeugs.twitchemotes.mixin.TextureManagerAccessor;
-import net.fabricmc.api.ModInitializer;
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
@@ -35,7 +35,7 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
-public class TwitchEmotesMod implements ModInitializer, SimpleSynchronousResourceReloadListener {
+public class TwitchEmotesMod implements ClientModInitializer, SimpleSynchronousResourceReloadListener {
 	public static Map<String, Emote> twitchEmotes = new HashMap<String, Emote>();
 	public static Set<String> twitchEmoteNames = new HashSet<String>();
 	public static Pattern emotePattern = Pattern.compile("e{2000}");
@@ -45,7 +45,7 @@ public class TwitchEmotesMod implements ModInitializer, SimpleSynchronousResourc
 	private Gson gson = (new GsonBuilder()).create();
 	
 	@Override
-	public void onInitialize() {
+	public void onInitializeClient() {
 		ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(this);
 		TwitchEmotesMod.mentionPattern = Pattern.compile(
 			"(?:^| )(?:§[0-9a-z])*(?:@){0,1}(?i:" + 
@@ -116,8 +116,6 @@ public class TwitchEmotesMod implements ModInitializer, SimpleSynchronousResourc
 							rows,
 							delay
 						));
-						
-						System.out.println(fileName + " " + Math.ceil(((float) frames) / ((float) rows)) + " " + ((float) frames) / ((float) rows) + " " + ((float) frames) + " " + ((float) rows));
 						
 						texture.close();
 					} catch(IOException e) {

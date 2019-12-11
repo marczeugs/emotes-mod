@@ -8,6 +8,5 @@ import net.minecraft.resource.ResourceManager;
 
 @Mixin(TextureManager.class)
 public interface TextureManagerAccessor {
-    @Accessor
-    public ResourceManager getResourceContainer();
+    @Accessor public ResourceManager getResourceContainer();
 }
