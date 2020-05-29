@@ -1,14 +1,14 @@
 {
-  "required": true,
-  "package": "marczeugs.twitchemotes.mixin",
-  "compatibilityLevel": "JAVA_8",
-  "mixins": [],
-  "client": [
-    "ChatHudMixin",
-    "CommandSuggestorMixin",
-    "TextureManagerAccessor"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+	"required": true,
+	"package": "marczeugs.twitchemotes.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"mixins": [],
+	"client": [
+		"ChatHudMixin",
+		"CommandSuggestorMixin",
+		"TextureManagerAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
 }

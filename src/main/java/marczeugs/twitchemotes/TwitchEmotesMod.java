@@ -36,12 +36,17 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
 public class TwitchEmotesMod implements ClientModInitializer, SimpleSynchronousResourceReloadListener {
+	public static final double CHAT_LINE_BASE_HEIGHT = 11.0d;
+	public static final double CHAT_LINE_EMOTE_HEIGHT = 15.0d;
+
 	public static Map<String, Emote> twitchEmotes = new HashMap<String, Emote>();
 	public static Set<String> twitchEmoteNames = new HashSet<String>();
 	public static Pattern emotePattern = Pattern.compile("e{2000}");
 	public static Pattern mentionPattern = Pattern.compile("e{2000}");
 	public static long startTimestamp = System.currentTimeMillis();
+	
 	private static final Logger LOGGER = LogManager.getLogger();
+
 	private Gson gson = (new GsonBuilder()).create();
 	
 	@Override
