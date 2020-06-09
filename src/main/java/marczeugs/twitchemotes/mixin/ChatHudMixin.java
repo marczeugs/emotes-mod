@@ -2,7 +2,11 @@ package marczeugs.twitchemotes.mixin;
 
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,7 +31,7 @@ import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
-import net.minecraft.text.Text;
+import net.minecraft.text.StringRenderable;
 import net.minecraft.util.math.MathHelper;
 
 
@@ -68,7 +72,12 @@ public class ChatHudMixin extends DrawableHelper {
 		locals = LocalCapture.CAPTURE_FAILSOFT
 	)
 	private void processChatLine(MatrixStack matrixStack, int i, CallbackInfo ci, int j, int k, boolean bl, double d, int l, double e, double f, double g, double h, int m, int n, ChatHudLine chatHudLine, double p, int q, int r, int s, double t) {
-		String chatLineText = chatHudLine.getText().getString();
+		List<String> textParts = new LinkedList<String>();
+		chatHudLine.getText().visit(textPart -> {
+			textParts.add(textPart);
+			return Optional.empty();
+		});
+		String chatLineText = textParts.stream().collect(Collectors.joining(""));
 		ChatHudMixinState.mentionedInLine = TwitchEmotesMod.mentionPattern.matcher(chatLineText).find();
 
 		ChatHudMixinState.chatLineParts = new ArrayList<Object>();
@@ -117,15 +126,14 @@ public class ChatHudMixin extends DrawableHelper {
 		);
 	}
 
-
 	@Redirect(
 		method = "render",
 		at = @At(
 			value = "INVOKE", 
-			target = "Lnet/minecraft/client/font/TextRenderer;drawWithShadow(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/text/Text;FFI)I"
+			target = "Lnet/minecraft/client/font/TextRenderer;drawWithShadow(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/text/StringRenderable;FFI)I"
 		)
 	)
-	private int redirectTextDraw(TextRenderer textRenderer, MatrixStack matrixStack, Text text, float x, float y, int color) {
+	private int redirectTextDraw(TextRenderer textRenderer, MatrixStack matrixStack, StringRenderable text, float x, float y, int color) {
 		int messageOpacity = (color >> 24) & 0xFF;
 		float textXOffset = 0;
 		int lastTextDrawReturnValue = 0;
@@ -142,7 +150,7 @@ public class ChatHudMixin extends DrawableHelper {
 					), 
 					color
 				);
-				textXOffset += textRenderer.getStringWidth(new LiteralText((String) chatLinePart));
+				textXOffset += textRenderer.getWidth(new LiteralText((String) chatLinePart));
 			} else {
 				Emote emote = ((Emote) chatLinePart);
 				int width = emote.width;
