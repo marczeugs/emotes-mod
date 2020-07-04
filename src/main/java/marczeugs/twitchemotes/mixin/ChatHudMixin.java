@@ -71,6 +71,7 @@ public class ChatHudMixin extends DrawableHelper {
 	private void processChatLine(MatrixStack matrixStack, int i, CallbackInfo ci, int j, int k, boolean bl, double d, int l, double e, double f, double g, double h, int m, int n, ChatHudLine chatHudLine, double p, int q, int r, int s, double t) {
 		ChatHudMixinState.chatLineParts = new ArrayList<Object>();
 		ChatHudMixinState.emoteInLine = false;
+		ChatHudMixinState.mentionedInLine = false;
 		
 		chatHudLine.getText().visit((style, textPart) -> {
 			Matcher emoteMatcher = TwitchEmotesMod.emotePattern.matcher(textPart);
