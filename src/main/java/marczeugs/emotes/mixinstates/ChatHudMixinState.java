@@ -1,4 +1,4 @@
-package marczeugs.twitchemotes.mixinstates;
+package marczeugs.emotes.mixinstates;
 
 import java.util.List;
 

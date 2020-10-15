@@ -1,4 +1,4 @@
-package marczeugs.twitchemotes;
+package marczeugs.emotes;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -17,12 +17,13 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import marczeugs.emotes.mixin.TextureManagerAccessor;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import marczeugs.twitchemotes.mixin.TextureManagerAccessor;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
@@ -35,12 +36,12 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
-public class TwitchEmotesMod implements ClientModInitializer, SimpleSynchronousResourceReloadListener {
+public class EmotesMod implements ClientModInitializer, SimpleSynchronousResourceReloadListener {
 	public static final double CHAT_LINE_BASE_HEIGHT = 11.0d;
 	public static final double CHAT_LINE_EMOTE_HEIGHT = 15.0d;
 
-	public static Map<String, Emote> twitchEmotes = new HashMap<String, Emote>();
-	public static Set<String> twitchEmoteNames = new HashSet<String>();
+	public static Map<String, Emote> emotes = new HashMap<String, Emote>();
+	public static Set<String> emoteNames = new HashSet<String>();
 	public static Pattern emotePattern = Pattern.compile("e{2000}");
 	public static Pattern mentionPattern = Pattern.compile("e{2000}");
 	public static long startTimestamp = System.currentTimeMillis();
@@ -52,31 +53,31 @@ public class TwitchEmotesMod implements ClientModInitializer, SimpleSynchronousR
 	@Override
 	public void onInitializeClient() {
 		ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(this);
-		TwitchEmotesMod.mentionPattern = Pattern.compile(
+		EmotesMod.mentionPattern = Pattern.compile(
 			"(?:^| )(?:§[0-9a-z])*(?:@){0,1}(?i:" + 
 			MinecraftClient.getInstance().getSession().getUsername() + 
 			")(?=(?:§[0-9a-z])*(?:$| ))"
 		);
 		
-		LOGGER.info("[TwitchEmotes] Mod loaded.");
+		LOGGER.info("[Emotes Mod] Mod loaded.");
 	}
 	
 	@Override
 	public Identifier getFabricId() {
-		return new Identifier("twitchemotes");
+		return new Identifier("emotes");
 	}
 
 	@Override
 	public void apply(ResourceManager resourceManager) {
-		twitchEmotes.clear();
+		EmotesMod.emotes.clear();
 		
 		try {
 			List<Resource> emotePackMetadata = null;
 			
 			try {
-				emotePackMetadata = resourceManager.getAllResources(new Identifier("twitchemotes", "emotes.json"));
+				emotePackMetadata = resourceManager.getAllResources(new Identifier("emotes", "emotes.json"));
 			} catch(FileNotFoundException e) {
-				LOGGER.warn("[TwitchEmotes] Unable to find any emote data packs, your chat experience will be vanilla.");
+				LOGGER.warn("[Emotes Mod] Unable to find any emote data packs, your chat experience will be vanilla.");
 				return;
 			}
 			
@@ -102,7 +103,7 @@ public class TwitchEmotesMod implements ClientModInitializer, SimpleSynchronousR
 						fileName = entry.getValue().getAsString();
 					}
 					
-					Identifier identifier = new Identifier("twitchemotes", "emotes/" + fileName + ".png");
+					Identifier identifier = new Identifier("emotes", "emotes/" + fileName + ".png");
 				
 					try {
 						NativeImage texture = ResourceTexture.TextureData.load(
@@ -110,7 +111,7 @@ public class TwitchEmotesMod implements ClientModInitializer, SimpleSynchronousR
 							identifier
 						).getImage();
 
-						TwitchEmotesMod.twitchEmotes.put(entry.getKey(), new Emote(
+						EmotesMod.emotes.put(entry.getKey(), new Emote(
 							identifier,
 							texture.getWidth() / ((int) Math.ceil(((float) frames) / ((float) rows))),
 							texture.getHeight() / rows,
@@ -124,24 +125,24 @@ public class TwitchEmotesMod implements ClientModInitializer, SimpleSynchronousR
 						
 						texture.close();
 					} catch(IOException e) {
-						LOGGER.warn("[TwitchEmotes] Unable to load emote {}.", entry.getKey());
+						LOGGER.warn("[Emotes] Unable to load emote {}.", entry.getKey());
 					}
 				}
 			}
 			
-			TwitchEmotesMod.twitchEmoteNames = TwitchEmotesMod.twitchEmotes.keySet();
+			EmotesMod.emoteNames = EmotesMod.emotes.keySet();
 			
 			
-			TwitchEmotesMod.emotePattern = Pattern.compile(
+			EmotesMod.emotePattern = Pattern.compile(
 				"(?:^|[ \\(\\[\\{<])(?:§[0-9a-z])*(" + 
-				TwitchEmotesMod.twitchEmotes.keySet().stream().map(name -> "\\Q" + name + "\\E").collect(Collectors.joining("|")) + 
+				EmotesMod.emotes.keySet().stream().map(name -> "\\Q" + name + "\\E").collect(Collectors.joining("|")) + 
 				")(?=(?:§[0-9a-z])*(?:$|[ \\)\\]\\}>]))"
 			);
 
 			
-			LOGGER.info("[TwitchEmotes] Loaded {} emote pack(s) containing {} emote(s).", emotePackMetadata.size(), TwitchEmotesMod.twitchEmotes.size());
+			LOGGER.info("[Emotes Mod] Loaded {} emote pack(s) containing {} emote(s).", emotePackMetadata.size(), EmotesMod.emotes.size());
 		} catch(IOException e) {
-			LOGGER.warn("[TwitchEmotes] Unable to load any emote data:", e);
+			LOGGER.warn("[Emotes Mod] Unable to load any emote data:", e);
 		}
 	}
 }

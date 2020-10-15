@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "marczeugs.twitchemotes.mixin",
+	"package": "marczeugs.emotes.mixin",
 	"compatibilityLevel": "JAVA_8",
 	"mixins": [],
 	"client": [

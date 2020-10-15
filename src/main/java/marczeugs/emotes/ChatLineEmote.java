@@ -1,4 +1,4 @@
-package marczeugs.twitchemotes;
+package marczeugs.emotes;
 
 import net.minecraft.util.Identifier;
 
