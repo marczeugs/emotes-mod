@@ -1,29 +1,11 @@
 package marczeugs.emotes.mixin;
 
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyConstant;
-import org.spongepowered.asm.mixin.injection.Constant;
-import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-
+import com.mojang.blaze3d.systems.RenderSystem;
 import marczeugs.emotes.ChatHudLineStyledPart;
 import marczeugs.emotes.Emote;
 import marczeugs.emotes.EmotesMod;
 import marczeugs.emotes.mixinstates.ChatHudMixinState;
-
-import com.mojang.blaze3d.systems.RenderSystem;
-
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.hud.ChatHud;
@@ -31,13 +13,16 @@ import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.OrderedText;
 import net.minecraft.util.math.MathHelper;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+
+import java.util.ArrayList;
 
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin extends DrawableHelper {
-	@Shadow @Final private MinecraftClient client;
-	
-	
 	@ModifyConstant(method = "render", constant = { @Constant(doubleValue = 9.0d) })
 	public double getChatLineHeight(double variable) {
 		return EmotesMod.CHAT_LINE_BASE_HEIGHT;
@@ -45,7 +30,7 @@ public class ChatHudMixin extends DrawableHelper {
 
 	@ModifyConstant(method = "render", constant = { @Constant(doubleValue = -8.0d) })
 	public double getChatTextYOffset(double variable) {
-		return -9.0d;
+		return -10.0d;
 	}
 
 
@@ -53,7 +38,8 @@ public class ChatHudMixin extends DrawableHelper {
 		method = "render",
 		at = @At(
 			value = "INVOKE", 
-			target = "Lcom/mojang/blaze3d/systems/RenderSystem;pushMatrix()V"
+			target = "Lnet/minecraft/client/util/math/MatrixStack;push()V",
+			ordinal = 0
 		)
 	)
 	private void initialiseVariables(MatrixStack matrixStack, int i, CallbackInfo ci) {
@@ -69,18 +55,18 @@ public class ChatHudMixin extends DrawableHelper {
 		),
 		locals = LocalCapture.CAPTURE_FAILSOFT
 	)
-	private void processChatLine(MatrixStack matrices, int tickDelta, CallbackInfo ci, int i, int j, boolean bl, double d, int k, double e, double f, double g, double h, int l, int m, ChatHudLine<OrderedText> chatHudLine, double o, int p, int q, int r, double s) {
-		ChatHudMixinState.chatLineParts = new ArrayList<Object>();
+	private void processChatLine(MatrixStack matrices, int tickDelta, CallbackInfo ci, int i, int j, boolean bl, float f, int k, double d, double e, double g, double h, int l, int m, ChatHudLine<OrderedText> chatHudLine, double o, int p, int q, int r, double s) {
+		ChatHudMixinState.chatLineParts = new ArrayList<>();
 		ChatHudMixinState.emoteInLine = false;
 		ChatHudMixinState.mentionedInLine = false;
 
-		List<ChatHudLineStyledPart> lineParts = new ArrayList<ChatHudLineStyledPart>();
+		var lineParts = new ArrayList<ChatHudLineStyledPart>();
 		lineParts.add(new ChatHudLineStyledPart(null));
 		chatHudLine.getText().accept((index, style, codePoint) -> {
-			ChatHudLineStyledPart currentLinePart = lineParts.get(lineParts.size() - 1);
+			var currentLinePart = lineParts.get(lineParts.size() - 1);
 
-			if(!style.equals(currentLinePart.style)) {
-				if(currentLinePart.style != null) {
+			if (!style.equals(currentLinePart.style)) {
+				if (currentLinePart.style != null) {
 					lineParts.add(new ChatHudLineStyledPart(style));
 					currentLinePart = lineParts.get(lineParts.size() - 1);
 				} else {
@@ -92,28 +78,31 @@ public class ChatHudMixin extends DrawableHelper {
 			return true;
 		});
 		
-		for(ChatHudLineStyledPart linePart : lineParts) {
-			String lineString = linePart.textBuilder.toString();
-			Matcher emoteMatcher = EmotesMod.emotePattern.matcher(lineString);
-			int lastMatchStart = 0;
+		for (var linePart : lineParts) {
+			var lineString = linePart.textBuilder.toString();
+			var emoteMatcher = EmotesMod.emotePattern.matcher(lineString);
+			var lastMatchStart = 0;
 
-			while(emoteMatcher.find()) {
-				if(!ChatHudMixinState.emoteInLine)
+			while (emoteMatcher.find()) {
+				if (!ChatHudMixinState.emoteInLine) {
 					ChatHudMixinState.emoteInLine = true;
+				}
 
-				ChatHudMixinState.chatLineParts.add(OrderedText.styledString(lineString.substring(lastMatchStart, emoteMatcher.start(1)), linePart.style));
+				ChatHudMixinState.chatLineParts.add(OrderedText.styledForwardsVisitedString(lineString.substring(lastMatchStart, emoteMatcher.start(1)), linePart.style));
 				ChatHudMixinState.chatLineParts.add(EmotesMod.emotes.get(emoteMatcher.group(1)));
 				lastMatchStart = emoteMatcher.end(1);
 			}
 
-			ChatHudMixinState.chatLineParts.add(OrderedText.styledString(lineString.substring(lastMatchStart), linePart.style));
+			ChatHudMixinState.chatLineParts.add(OrderedText.styledForwardsVisitedString(lineString.substring(lastMatchStart), linePart.style));
 
-			if(!ChatHudMixinState.mentionedInLine && EmotesMod.mentionPattern.matcher(lineString).find())
+			if (!ChatHudMixinState.mentionedInLine && EmotesMod.mentionPattern.matcher(lineString).find()) {
 				ChatHudMixinState.mentionedInLine = true;
+			}
 		}
 
-		if(ChatHudMixinState.emoteInLine)
+		if (ChatHudMixinState.emoteInLine) {
 			ChatHudMixinState.chatLineYOffset += EmotesMod.CHAT_LINE_EMOTE_HEIGHT - EmotesMod.CHAT_LINE_BASE_HEIGHT;
+		}
 	}
 
 	@Redirect(
@@ -124,7 +113,7 @@ public class ChatHudMixin extends DrawableHelper {
 		)
 	)
 	private void redirectFill(MatrixStack matrixStack, int x1, int y1, int x2, int y2, int color) {
-		int messageBackgroundOpacity = (color >> 24) & 0xFF;
+		var messageBackgroundOpacity = (color >> 24) & 0xFF;
 		
 		DrawableHelper.fill(
 			matrixStack,
@@ -149,45 +138,47 @@ public class ChatHudMixin extends DrawableHelper {
 		)
 	)
 	private int redirectTextDraw(TextRenderer textRenderer, MatrixStack matrixStack, OrderedText orderedText, float x, float y, int color) {
-		int messageOpacity = (color >> 24) & 0xFF;
-		float textXOffset = 0;
-		int lastTextDrawReturnValue = 0;
+		var messageOpacity = (color >> 24) & 0xFF;
+		var textXOffset = 0;
+		var lastTextDrawReturnValue = 0;
 
-		for(Object chatLinePart : ChatHudMixinState.chatLineParts) {
-			if(chatLinePart instanceof OrderedText) {
+		for (var chatLinePart : ChatHudMixinState.chatLineParts) {
+			if (chatLinePart instanceof OrderedText textPart) {
+				//noinspection IntegerDivisionInFloatingPointContext
 				lastTextDrawReturnValue = textRenderer.drawWithShadow(
-					matrixStack, 
-					(OrderedText) chatLinePart, 
-					(int) textXOffset, 
+					matrixStack,
+					textPart,
+					textXOffset,
 					y - ChatHudMixinState.chatLineYOffset + (ChatHudMixinState.emoteInLine
-						? (int) (EmotesMod.CHAT_LINE_EMOTE_HEIGHT - EmotesMod.CHAT_LINE_BASE_HEIGHT) / 2
+						? (int) (EmotesMod.CHAT_LINE_EMOTE_HEIGHT - EmotesMod.CHAT_LINE_BASE_HEIGHT) / 2 + 1
 						: 0
-					), 
+					),
 					color
 				);
-				textXOffset += textRenderer.getWidth((OrderedText) chatLinePart);
-			} else {
-				Emote emote = ((Emote) chatLinePart);
-				int width = emote.width;
-				int height = emote.height;
-				
-				this.client.getTextureManager().bindTexture(emote.identifier);
-				RenderSystem.color4f(1.0f, 1.0f, 1.0f, (float) messageOpacity / 255.0f);
 
-				int frame = emote.animated
-					? ((int) (((System.currentTimeMillis() - EmotesMod.startTimestamp) / emote.delay) % emote.frames))
+				textXOffset += textRenderer.getWidth(textPart);
+			} else {
+				var emote = (Emote) chatLinePart;
+				var width = emote.width();
+				var height = emote.height();
+
+				RenderSystem.setShaderTexture(0, emote.identifier());
+				RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, ((float) messageOpacity) / 255.0f);
+
+				var frame = emote.animated()
+					? ((int) (((System.currentTimeMillis() - EmotesMod.startTimestamp) / emote.delay()) % emote.frames()))
 					: 0;
-					
-				DrawableHelper.drawTexture(
-					matrixStack,
-					(int) textXOffset, (int) y - ChatHudMixinState.chatLineYOffset - 1, 
-					13 * width / height, 13, 
-					(frame / (8192 / emote.height)) * emote.width, (frame % (8192 / emote.height)) * emote.height, 
-					emote.width, emote.height, 
-					emote.textureWidth, emote.textureHeight
-				);
+
 				// Arguments: drawX drawY drawWidth drawHeight texturePartX texturePartY
 				// texturePartWidth texturePartHeight textureWidth textureHeight
+				DrawableHelper.drawTexture(
+					matrixStack,
+					textXOffset, (int) y - ChatHudMixinState.chatLineYOffset - 1,
+					13 * width / height, 13, 
+					((float) ((frame / (8192 / emote.height())) * emote.width())), ((float) ((frame % (8192 / emote.height())) * emote.height())),
+					emote.width(), emote.height(),
+					emote.textureWidth(), emote.textureHeight()
+				);
 
 				textXOffset += 13 * width / height + 1;
 			}

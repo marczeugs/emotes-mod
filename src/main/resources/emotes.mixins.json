@@ -6,7 +6,7 @@
 	"client": [
 		"ChatHudMixin",
 		"CommandSuggestorMixin",
-		"TextureManagerAccessor"
+		"ResourceTextureMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

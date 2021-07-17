@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "emotes",
-	"version": "${version}",
+	"version": "1.0.6",
 
 	"name": "Emotes Mod",
 	"description": "This mod enables emotes in the ingame chat. Add emote resource packs to add new emotes.",
